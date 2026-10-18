@@ -1,24 +1,22 @@
 import 'package:flutter/material.dart';
+import 'games/all_games.dart';
 import 'screens/main_menu_screen.dart';
 
 void main() {
-  runApp(const MiniGamesApp());
+  WidgetsFlutterBinding.ensureInitialized();
+  runApp(const MyApp());
 }
 
-class MiniGamesApp extends StatelessWidget {
-  const MiniGamesApp({super.key});
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      title: 'Mini Games Hub',
       debugShowCheckedModeBanner: false,
-      title: 'אוסף מיני משחקים - AI הוגן',
       theme: ThemeData(
-        fontFamily: 'Roboto',
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF6C5CE7),
-          brightness: Brightness.light,
-        ),
+        primarySwatch: Colors.deepPurple,
         useMaterial3: true,
       ),
       home: const MainMenuScreen(),
