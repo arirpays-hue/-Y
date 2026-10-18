@@ -1,10 +1,26 @@
 import 'dart:async';
 import 'dart:math';
 import 'package:flutter/material.dart';
+import 'game_registry.dart';
+
+// רישום אוטומטי למערכת
+final _chessAutoRegister = GameRegistry.register(_ChessAdapter());
+
+class _ChessAdapter extends BaseGame {
+  @override String get id => 'chess';
+  @override String get title => 'שחמט';
+  @override String get subtitle => 'אסטרטגיה מלאה מול AI או חבר (PvP)';
+  @override String get icon => '♟️';
+
+  @override
+  Widget buildScreen(int difficulty, {bool initialPvP = false}) {
+    return ChessGameScreen(difficulty: difficulty, initialPvP: initialPvP);
+  }
+}
 
 class ChessGameScreen extends StatefulWidget {
   final int difficulty;
-  final bool initialPvP; // תמיכה בהגדרת PvP מהתפריט
+  final bool initialPvP;
 
   const ChessGameScreen({
     super.key,
@@ -34,7 +50,8 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
   @override
   void initState() {
     super.initState();
-    _resetBoard(widget.initialPvP);
+    isPvP = widget.initialPvP;
+    _resetBoard(isPvP);
   }
 
   void _resetBoard(bool pvpMode) {
@@ -82,12 +99,9 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
 
   void _onSquareTap(int r, int c) {
     if (isGameOver) return;
-    
-    // במצב AI, מותר ללחוץ רק כשתור הלבן
     if (!isPvP && !isWhiteTurn) return;
 
     String currentPiece = board[r][c];
-    // בדיקה האם הכלי שלחצנו עליו שייך לשחקן שלשתורו כעת
     bool isCurrentPlayerPiece = isWhiteTurn ? _isWhite(currentPiece) : _isBlack(currentPiece);
 
     if (selectedRow == null) {
