@@ -1,53 +1,95 @@
+import 'dart:async';
+import 'dart:math';
 import 'package:flutter/material.dart';
 
 void main() {
-  runApp(const TicTacToeApp());
+  runApp(const MiniGamesApp());
 }
 
-class TicTacToeApp extends StatelessWidget {
-  const TicTacToeApp({super.key});
+class MiniGamesApp extends StatelessWidget {
+  const MiniGamesApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'איקס עיגול',
+      title: 'ערכת מיני משחקים',
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
       ),
-      home: const TicTacToeScreen(),
+      home: const MainMenuScreen(),
+    );
+  }
+}
+
+class MainMenuScreen extends StatelessWidget {
+  const MainMenuScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.deepPurple.shade50,
+      appBar: AppBar(
+        title: const Text('אוסף מיני משחקים 🎮'),
+        centerTitle: true,
+        backgroundColor: Colors.deepPurple,
+        foregroundColor: Colors.white,
+      ),
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              _buildGameButton(context, title: 'איקס עיגול ❌⭕', color: Colors.deepPurple, screen: const TicTacToeScreen()),
+              const SizedBox(height: 20),
+              _buildGameButton(context, title: 'משחק זיכרון 🧠', color: Colors.indigo, screen: const MemoryGameScreen()),
+              const SizedBox(height: 20),
+              _buildGameButton(context, title: 'משחק סנייק 🐍', color: Colors.teal, screen: const SnakeGameScreen()),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildGameButton(BuildContext context, {required String title, required Color color, required Widget screen}) {
+    return SizedBox(
+      width: double.infinity,
+      height: 65,
+      child: ElevatedButton(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: color,
+          foregroundColor: Colors.white,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          textStyle: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+        ),
+        onPressed: () {
+          Navigator.push(context, MaterialPageRoute(builder: (context) => screen));
+        },
+        child: Text(title),
+      ),
     );
   }
 }
 
 class TicTacToeScreen extends StatefulWidget {
   const TicTacToeScreen({super.key});
-
   @override
   State<TicTacToeScreen> createState() => _TicTacToeScreenState();
 }
 
 class _TicTacToeScreenState extends State<TicTacToeScreen> {
-  // לוח המשחק - 9 משבצות
   List<String> board = List.filled(9, '');
-  
-  // תור שחקן: true עבור 'X', false עבור 'O'
   bool isXTurn = true;
-  
-  // הודעת סטטוס
   String statusMessage = "תור השחקן: X";
-  
-  // האם המשחק הסתיים
   bool isGameOver = false;
 
-  // לוגיקה בלחיצה על משבצת
   void _handleTap(int index) {
     if (board[index] != '' || isGameOver) return;
-
     setState(() {
       board[index] = isXTurn ? 'X' : 'O';
-      
       if (_checkWinner()) {
         statusMessage = "המנצח הוא: ${board[index]}! 🎉";
         isGameOver = true;
@@ -61,25 +103,20 @@ class _TicTacToeScreenState extends State<TicTacToeScreen> {
     });
   }
 
-  // בדיקת תנאי ניצחון
   bool _checkWinner() {
     const winningCombo = [
-      [0, 1, 2], [3, 4, 5], [6, 7, 8], // שורות
-      [0, 3, 6], [1, 4, 7], [2, 5, 8], // עמודות
-      [0, 4, 8], [2, 4, 6]             // אלכסונים
+      [0, 1, 2], [3, 4, 5], [6, 7, 8],
+      [0, 3, 6], [1, 4, 7], [2, 5, 8],
+      [0, 4, 8], [2, 4, 6]
     ];
-
     for (var combo in winningCombo) {
-      if (board[combo[0]] != '' &&
-          board[combo[0]] == board[combo[1]] &&
-          board[combo[1]] == board[combo[2]]) {
+      if (board[combo[0]] != '' && board[combo[0]] == board[combo[1]] && board[combo[1]] == board[combo[2]]) {
         return true;
       }
     }
     return false;
   }
 
-  // איפוס המשחק
   void _resetGame() {
     setState(() {
       board = List.filled(9, '');
@@ -93,64 +130,26 @@ class _TicTacToeScreenState extends State<TicTacToeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.deepPurple.shade50,
-      appBar: AppBar(
-        title: const Text('איקס עיגול'),
-        centerTitle: true,
-        backgroundColor: Colors.deepPurple,
-        foregroundColor: Colors.white,
-      ),
+      appBar: AppBar(title: const Text('איקס עיגול')),
       body: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          // הודעת הסטטוס
-          Text(
-            statusMessage,
-            style: const TextStyle(
-              fontSize: 28,
-              fontWeight: FontWeight.bold,
-              color: Colors.deepPurple,
-            ),
-          ),
-          const SizedBox(height: 30),
-
-          // לוח המשחק
+          Text(statusMessage, style: const TextStyle(fontSize: 26, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 20),
           Padding(
             padding: const EdgeInsets.all(16.0),
             child: AspectRatio(
               aspectRatio: 1,
               child: GridView.builder(
                 itemCount: 9,
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 3,
-                  crossAxisSpacing: 8,
-                  mainAxisSpacing: 8,
-                ),
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 3, crossAxisSpacing: 8, mainAxisSpacing: 8),
                 itemBuilder: (context, index) {
                   return GestureDetector(
                     onTap: () => _handleTap(index),
                     child: Container(
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(12),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.1),
-                            blurRadius: 4,
-                            offset: const Offset(2, 2),
-                          ),
-                        ],
-                      ),
+                      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)),
                       child: Center(
-                        child: Text(
-                          board[index],
-                          style: TextStyle(
-                            fontSize: 48,
-                            fontWeight: FontWeight.bold,
-                            color: board[index] == 'X'
-                                ? Colors.deepPurple
-                                : Colors.orangeAccent,
-                          ),
-                        ),
+                        child: Text(board[index], style: TextStyle(fontSize: 48, fontWeight: FontWeight.bold, color: board[index] == 'X' ? Colors.deepPurple : Colors.orange)),
                       ),
                     ),
                   );
@@ -158,17 +157,230 @@ class _TicTacToeScreenState extends State<TicTacToeScreen> {
               ),
             ),
           ),
-          const SizedBox(height: 20),
+          ElevatedButton.icon(onPressed: _resetGame, icon: const Icon(Icons.refresh), label: const Text('משחק חדש')),
+        ],
+      ),
+    );
+  }
+}
 
-          // כפתור איפוס
-          ElevatedButton.icon(
-            onPressed: _resetGame,
-            icon: const Icon(Icons.refresh),
-            label: const Text('משחק חדש', style: TextStyle(fontSize: 18)),
-            style: ElevatedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-              backgroundColor: Colors.deepPurple,
-              foregroundColor: Colors.white,
+class MemoryGameScreen extends StatefulWidget {
+  const MemoryGameScreen({super.key});
+  @override
+  State<MemoryGameScreen> createState() => _MemoryGameScreenState();
+}
+
+class _MemoryGameScreenState extends State<MemoryGameScreen> {
+  final List<String> _items = ['🐶', '🐱', '🐭', '🐹', '🦊', '🐻'];
+  late List<String> _cards;
+  late List<bool> _cardFlips;
+  int? _previousIndex;
+  bool _busy = false;
+  int _score = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _startNewGame();
+  }
+
+  void _startNewGame() {
+    setState(() {
+      _cards = [..._items, ..._items]..shuffle();
+      _cardFlips = List.filled(_cards.length, false);
+      _previousIndex = null;
+      _score = 0;
+      _busy = false;
+    });
+  }
+
+  void _onCardTap(int index) {
+    if (_busy || _cardFlips[index]) return;
+    setState(() { _cardFlips[index] = true; });
+    if (_previousIndex == null) {
+      _previousIndex = index;
+    } else {
+      if (_cards[_previousIndex!] == _cards[index]) {
+        _score++;
+        _previousIndex = null;
+      } else {
+        _busy = true;
+        Timer(const Duration(milliseconds: 800), () {
+          setState(() {
+            _cardFlips[_previousIndex!] = false;
+            _cardFlips[index] = false;
+            _previousIndex = null;
+            _busy = false;
+          });
+        });
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.indigo.shade50,
+      appBar: AppBar(title: const Text('משחק זיכרון')),
+      body: Column(
+        children: [
+          const SizedBox(height: 20),
+          Text('זוגות שנמצאו: $_score / ${_items.length}', style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+          Expanded(
+            child: GridView.builder(
+              padding: const EdgeInsets.all(16),
+              itemCount: _cards.length,
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 3, crossAxisSpacing: 10, mainAxisSpacing: 10),
+              itemBuilder: (context, index) {
+                return GestureDetector(
+                  onTap: () => _onCardTap(index),
+                  child: Container(
+                    decoration: BoxDecoration(color: _cardFlips[index] ? Colors.white : Colors.indigo, borderRadius: BorderRadius.circular(12)),
+                    child: Center(child: Text(_cardFlips[index] ? _cards[index] : '❓', style: const TextStyle(fontSize: 40))),
+                  ),
+                );
+              },
+            ),
+          ),
+          ElevatedButton.icon(onPressed: _startNewGame, icon: const Icon(Icons.refresh), label: const Text('משחק חדש')),
+          const SizedBox(height: 20),
+        ],
+      ),
+    );
+  }
+}
+
+class SnakeGameScreen extends StatefulWidget {
+  const SnakeGameScreen({super.key});
+  @override
+  State<SnakeGameScreen> createState() => SnakeGameScreenState();
+}
+
+enum Direction { up, down, left, right }
+
+class SnakeGameScreenState extends State<SnakeGameScreen> {
+  static const int rows = 20;
+  static const int columns = 15;
+  List<int> snake = [45, 44, 43];
+  int food = 100;
+  Direction direction = Direction.right;
+  Timer? timer;
+  bool isPlaying = false;
+  int score = 0;
+
+  void _startGame() {
+    setState(() {
+      snake = [45, 44, 43];
+      direction = Direction.right;
+      score = 0;
+      isPlaying = true;
+      _generateFood();
+    });
+    timer?.cancel();
+    timer = Timer.periodic(const Duration(milliseconds: 250), (timer) { _updateSnake(); });
+  }
+
+  void _generateFood() {
+    final random = Random();
+    do { food = random.nextInt(rows * columns); } while (snake.contains(food));
+  }
+
+  void _updateSnake() {
+    setState(() {
+      int newHead;
+      switch (direction) {
+        case Direction.up:
+          newHead = snake.first - columns;
+          if (newHead < 0) newHead += rows * columns;
+          break;
+        case Direction.down:
+          newHead = snake.first + columns;
+          if (newHead >= rows * columns) newHead -= rows * columns;
+          break;
+        case Direction.left:
+          newHead = (snake.first % columns == 0) ? snake.first + columns - 1 : snake.first - 1;
+          break;
+        case Direction.right:
+          newHead = ((snake.first + 1) % columns == 0) ? snake.first - columns + 1 : snake.first + 1;
+          break;
+      }
+      if (snake.contains(newHead)) {
+        timer?.cancel();
+        isPlaying = false;
+        _showGameOverDialog();
+        return;
+      }
+      snake.insert(0, newHead);
+      if (newHead == food) {
+        score += 10;
+        _generateFood();
+      } else {
+        snake.removeLast();
+      }
+    });
+  }
+
+  void _showGameOverDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        title: const Text('המשחק נגמר! 🐍'),
+        content: Text('הניקוד שלך: $score'),
+        actions: [TextButton(onPressed: () { Navigator.pop(context); _startGame(); }, child: const Text('שחק שוב'))],
+      ),
+    );
+  }
+
+  @override
+  void dispose() {
+    timer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.teal.shade50,
+      appBar: AppBar(title: Text('סנייק - ניקוד: $score')),
+      body: Column(
+        children: [
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: GridView.builder(
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: rows * columns,
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: columns),
+                itemBuilder: (context, index) {
+                  if (snake.contains(index)) {
+                    return Container(
+                      margin: const EdgeInsets.all(1),
+                      decoration: BoxDecoration(color: snake.first == index ? Colors.green.shade800 : Colors.green, borderRadius: BorderRadius.circular(4)),
+                    );
+                  }
+                  if (index == food) return const Center(child: Text('🍎', style: TextStyle(fontSize: 16)));
+                  return Container(margin: const EdgeInsets.all(1), color: Colors.teal.shade100);
+                },
+              ),
+            ),
+          ),
+          if (!isPlaying) ElevatedButton(onPressed: _startGame, child: const Text('התחל משחק', style: TextStyle(fontSize: 20))),
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              children: [
+                IconButton(icon: const Icon(Icons.arrow_upward, size: 36), onPressed: () { if (direction != Direction.down) direction = Direction.up; }),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    IconButton(icon: const Icon(Icons.arrow_back, size: 36), onPressed: () { if (direction != Direction.right) direction = Direction.left; }),
+                    const SizedBox(width: 40),
+                    IconButton(icon: const Icon(Icons.arrow_forward, size: 36), onPressed: () { if (direction != Direction.left) direction = Direction.right; }),
+                  ],
+                ),
+                IconButton(icon: const Icon(Icons.arrow_downward, size: 36), onPressed: () { if (direction != Direction.up) direction = Direction.down; }),
+              ],
             ),
           ),
         ],
