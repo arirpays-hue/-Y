@@ -17,9 +17,9 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
   List<Point<int>> validMoves = [];
   bool isWhiteTurn = true;
   bool isGameOver = false;
-  String statusMessage = "תורך לשחק (לבן) ♟️";
+  bool isPvP = false; // האם מצב משחק הוא שחקן נגד שחקן
+  String statusMessage = "בחר מצב משחק למטה ♟️";
 
-  // הערכת שווי כלי שחמט בסיסי
   final Map<String, int> pieceValues = {
     'p': 100, 'n': 320, 'b': 330, 'r': 500, 'q': 900, 'k': 20000,
     'P': 100, 'N': 320, 'B': 330, 'R': 500, 'Q': 900, 'K': 20000,
@@ -28,11 +28,12 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
   @override
   void initState() {
     super.initState();
-    _resetBoard();
+    _resetBoard(false);
   }
 
-  void _resetBoard() {
+  void _resetBoard(bool pvpMode) {
     setState(() {
+      isPvP = pvpMode;
       board = [
         ['r', 'n', 'b', 'q', 'k', 'b', 'n', 'r'],
         ['p', 'p', 'p', 'p', 'p', 'p', 'p', 'p'],
@@ -48,7 +49,7 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
       validMoves.clear();
       isWhiteTurn = true;
       isGameOver = false;
-      statusMessage = "תורך לשחק (לבן) ♟️";
+      statusMessage = isPvP ? "תור השחקן הלבן ♟️" : "תורך לשחק מול ה-AI (לבן) ♟️";
     });
   }
 
@@ -74,10 +75,17 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
   bool _isBlack(String piece) => piece.isNotEmpty && piece == piece.toLowerCase();
 
   void _onSquareTap(int r, int c) {
-    if (!isWhiteTurn || isGameOver) return;
+    if (isGameOver) return;
+
+    // במצב AI, השחקן הלבן משחק לבד והשחור הוא AI
+    if (!isPvP && !isWhiteTurn) return;
+
+    // במצב PvP, לבן משחק בתורו ושחור בתורו
+    String currentPiece = board[r][c];
+    bool isCurrentPlayerPiece = isWhiteTurn ? _isWhite(currentPiece) : _isBlack(currentPiece);
 
     if (selectedRow == null) {
-      if (_isWhite(board[r][c])) {
+      if (isCurrentPlayerPiece) {
         setState(() {
           selectedRow = r;
           selectedCol = c;
@@ -91,7 +99,10 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
 
         // בדיקת ניצחון באכילת מלך
         if (targetPiece == 'k') {
-          _endGame("שח מט! ניצחת את ה-AI! 🎉");
+          _endGame("שח מט! השחקן הלבן ניצח! 🎉");
+          return;
+        } else if (targetPiece == 'K') {
+          _endGame("שח מט! השחקן השחור ניצח! 🎉");
           return;
         }
 
@@ -99,14 +110,19 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
           selectedRow = null;
           selectedCol = null;
           validMoves.clear();
-          isWhiteTurn = false;
-          statusMessage = "ה-AI מחשב מהלך אופטימלי... 🤖";
+          isWhiteTurn = !isWhiteTurn;
+          statusMessage = isPvP 
+              ? (isWhiteTurn ? "תור השחקן הלבן ♟️" : "תור השחקן השחור ♟️")
+              : "ה-AI מחשב מהלך... 🤖";
         });
 
-        Timer(const Duration(milliseconds: 500), _aiMove);
+        // אם זה מצב AI ותור השחור - הפעל את ה-AI
+        if (!isPvP && !isWhiteTurn) {
+          Timer(const Duration(milliseconds: 500), _aiMove);
+        }
       } else {
         setState(() {
-          if (_isWhite(board[r][c])) {
+          if (isCurrentPlayerPiece) {
             selectedRow = r;
             selectedCol = c;
             validMoves = _getValidMoves(board, r, c);
@@ -188,9 +204,8 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
     return moves;
   }
 
-  // 🧠 אלגוריתם Minimax מעמיק עם Alpha-Beta Pruning
   void _aiMove() {
-    if (isGameOver) return;
+    if (isGameOver || isPvP) return;
 
     int depth = widget.difficulty == 1 ? 1 : (widget.difficulty == 2 ? 2 : 3);
     int bestScore = -99999;
@@ -207,17 +222,12 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
       Point<int> from = move['from'];
       Point<int> to = move['to'];
 
-      // שמירת מצב זמני
       String tempTarget = board[to.x][to.y];
       String tempSource = board[from.x][from.y];
 
-      // ביצוע מהלך נסיוני
       _makeMove(board, from.x, from.y, to.x, to.y);
-
-      // הערכת הלוח
       int score = _minimax(board, depth - 1, -100000, 100000, false);
 
-      // ביטול המהלך הנסיוני
       board[from.x][from.y] = tempSource;
       board[to.x][to.y] = tempTarget;
 
@@ -227,7 +237,6 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
       }
     }
 
-    // 🚨 שילוב טעות אנוש מחושבת (ברמה 3 יש 15% סיכוי למהלך פחות מושלם)
     if (widget.difficulty == 3 && Random().nextDouble() < 0.15 && allMoves.length > 1) {
       allMoves.shuffle();
       bestMove = allMoves.first;
@@ -240,7 +249,6 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
 
       _makeMove(board, from.x, from.y, to.x, to.y);
 
-      // בדיקה אם ה-AI אכל את מלך השחקן
       if (targetPiece == 'K') {
         _endGame("ה-AI אכל את המלך שלך! הפסדת 🤖");
         return;
@@ -305,9 +313,9 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
         if (p.isNotEmpty) {
           int val = pieceValues[p] ?? 0;
           if (_isBlack(p)) {
-            score += val; // ניקוד חיובי ל-AI
+            score += val;
           } else {
-            score -= val; // ניקוד שלילי לשחקן
+            score -= val;
           }
         }
       }
@@ -347,9 +355,9 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
           ElevatedButton(
             onPressed: () {
               Navigator.pop(context);
-              _resetBoard();
+              _resetBoard(isPvP);
             },
-            child: const Text('משחק חדש'),
+            child: const Text('שחק שוב'),
           )
         ],
       ),
@@ -361,19 +369,47 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFF2D3436),
       appBar: AppBar(
-        title: Text('שחמט מתקדם (רמה ${widget.difficulty})'),
+        title: Text(isPvP ? 'שחמט (שחקן מול שחקן)' : 'שחמט מול AI (רמה ${widget.difficulty})'),
         backgroundColor: const Color(0xFF6C5CE7),
         foregroundColor: Colors.white,
       ),
       body: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-            decoration: BoxDecoration(color: Colors.white12, borderRadius: BorderRadius.circular(16)),
-            child: Text(statusMessage, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white)),
+          // מתגי בחירת מצב משחק
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                ElevatedButton.styleFrom().wrap(
+                  ElevatedButton(
+                    onPressed: () => _resetBoard(false),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: !isPvP ? Colors.deepPurple : Colors.grey.shade700,
+                      foregroundColor: Colors.white,
+                    ),
+                    child: const Text('מצב AI 🤖'),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                ElevatedButton(
+                  onPressed: () => _resetBoard(true),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: isPvP ? Colors.deepPurple : Colors.grey.shade700,
+                    foregroundColor: Colors.white,
+                  ),
+                  child: const Text('שחקן מול שחקן 👥'),
+                ),
+              ],
+            ),
           ),
-          const SizedBox(height: 20),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+            decoration: BoxDecoration(color: Colors.white12, borderRadius: BorderRadius.circular(16)),
+            child: Text(statusMessage, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
+          ),
+          const SizedBox(height: 15),
           Padding(
             padding: const EdgeInsets.all(12.0),
             child: AspectRatio(
@@ -418,12 +454,16 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
           ),
           const SizedBox(height: 10),
           ElevatedButton.icon(
-            onPressed: _resetBoard,
+            onPressed: () => _resetBoard(isPvP),
             icon: const Icon(Icons.refresh),
-            label: const Text('משחק חדש'),
+            label: const Text('איפוס לוח'),
           ),
         ],
       ),
     );
   }
+}
+
+extension on ButtonStyle {
+  Widget wrap(Widget child) => child;
 }
