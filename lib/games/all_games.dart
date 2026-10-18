@@ -1,13 +1,11 @@
 import 'package:flutter/material.dart';
 
-// ייבוא קבצי המשחקים הפעילים בפרויקט
 import 'chess_game.dart';
 import 'checkers_game.dart';
 import 'snake_game.dart';
 import 'catch_game.dart';
 import 'trivia_game.dart';
 
-// מחלקת מידע המייצגת משחק באפליקציה
 class GameItem {
   final String id;
   final String title;
@@ -24,7 +22,6 @@ class GameItem {
   });
 }
 
-// הרשימה המרכזית המאגדת את המשחקים באפליקציה
 List<GameItem> getAllGames() {
   return [
     GameItem(
@@ -46,21 +43,21 @@ List<GameItem> getAllGames() {
       title: 'סנייק',
       subtitle: 'משחק הנחש הקלאסי',
       icon: '🐍',
-      screenBuilder: (context) => const SnakeGameScreen(),
+      screenBuilder: (context) => const SnakeGameScreen(difficulty: 1), // הוספת difficulty
     ),
     GameItem(
       id: 'catch',
       title: 'תפוס את הנופלים',
       subtitle: 'משחק תגובה מהיר',
       icon: '🎯',
-      screenBuilder: (context) => const CatchGameScreen(),
+      screenBuilder: (context) => const CatchGameScreen(difficulty: 1), // הוספת difficulty אם נדרש
     ),
     GameItem(
       id: 'trivia',
       title: 'טריוויה',
       subtitle: 'בחן את הידע שלך',
       icon: '❓',
-      screenBuilder: (context) => const TriviaGameScreen(),
+      screenBuilder: (context) => const TriviaGameScreen(difficulty: 1), // הוספת difficulty אם נדרש
     ),
   ];
 }
