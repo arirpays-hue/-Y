@@ -21,7 +21,6 @@ class _TriviaGameScreenState extends State<TriviaGameScreen> {
   Timer? questionTimer;
   int timeLeft = 10;
 
-  // 🧠 מאגר שאלות ענק ומגוון בעברית (נבחרות באקראיות בכל משחק)
   final List<Map<String, dynamic>> allQuestions = [
     {
       'q': 'מהי עיר הבירה של יפן?',
@@ -83,66 +82,6 @@ class _TriviaGameScreenState extends State<TriviaGameScreen> {
       'correct': 2,
       'category': '🌈 פיזיקה וטבע'
     },
-    {
-      'q': 'איזה כוכב לכת מכונה "הכוכב האדום"?',
-      'a': ['נוגה', 'מאדים', 'שבתאי', 'צדק'],
-      'correct': 1,
-      'category': '🌌 חלל הארץ'
-    },
-    {
-      'q': 'מהו המאכל האהוב ביותר על דובוני פנדה?',
-      'a': ['דבש', 'אקליפטוס', 'במבוק', 'דגים'],
-      'correct': 2,
-      'category': '🐾 טבע וחיות'
-    },
-    {
-      'q': 'מי היה הנשיא הראשון של מדינת ישראל?',
-      'a': ['דוד בן-גוריון', 'חיים ויצמן', 'יצחק בן-צבי', 'זלמן שזר'],
-      'correct': 1,
-      'category': '📜 היסטוריה'
-    },
-    {
-      'q': 'באיזו ישת יבשת נמצאת מדבר סהרה?',
-      'a': ['אסיה', 'אוסטרליה', 'אפריקה', 'דרום אמריקה'],
-      'correct': 2,
-      'category': '🌍 גאוגרפיה'
-    },
-    {
-      'q': 'כמה שחקנים יש בקבוצת כדורגל על המגרש לכל קבוצה?',
-      'a': ['9', '10', '11', '12'],
-      'correct': 2,
-      'category': '⚽ ספורט'
-    },
-    {
-      'q': 'מהו האיבר הגדול ביותר בגוף האדם?',
-      'a': ['המוח', 'הכבד', 'העור', 'הלב'],
-      'correct': 2,
-      'category': '🧬 מדע וגוף'
-    },
-    {
-      'q': 'באיזו מדינה נמצא מגדל אייפל?',
-      'a': ['איטליה', 'צרפת', 'אנגליה', 'ספרד'],
-      'correct': 1,
-      'category': '🌍 גאוגרפיה'
-    },
-    {
-      'q': 'מי המציא את נורה החשמל המעשית?',
-      'a': ['אלברט איינשטיין', 'תומאס אדיסון', 'ניקולה טסלה', 'אייזק ניוטון'],
-      'correct': 1,
-      'category': '💡 מדע והמצאות'
-    },
-    {
-      'q': 'מהי השפה המדוברת ביותר בעולם מבחינת דוברים שפת אם?',
-      'a': ['אנגלית', 'ספרדית', 'סינית מנדרינית', 'הינדי'],
-      'correct': 2,
-      'category': '🗣️ כללי'
-    },
-    {
-      'q': 'איזה בעל חיים מסוגל לשנות את צבע עורו בהתאם לסביבה?',
-      'a': ['זיקית', 'תמנון', 'נחש', 'צפרדע'],
-      'correct': 0,
-      'category': '🐾 טבע וחיות'
-    },
   ];
 
   late List<Map<String, dynamic>> gameQuestions;
@@ -150,9 +89,8 @@ class _TriviaGameScreenState extends State<TriviaGameScreen> {
   @override
   void initState() {
     super.initState();
-    // ערבוב ובחירת 10 שאלות אקראיות מתוך המאגר הענק בכל משחק מחדש!
     gameQuestions = List.from(allQuestions)..shuffle();
-    gameQuestions = gameQuestions.take(10).toList();
+    gameQuestions = gameQuestions.take(8).toList();
     _startTimer();
   }
 
@@ -317,7 +255,7 @@ class _TriviaGameScreenState extends State<TriviaGameScreen> {
 
               if (answered) {
                 if (i == q['correct']) {
-                  btnColor = Colors.green.shade450;
+                  btnColor = Colors.green.shade400; // תוקן מ-shade450 ל-shade400 החוקי
                   textColor = Colors.white;
                 } else if (i == selectedAnswerIndex) {
                   btnColor = Colors.red.shade400;
