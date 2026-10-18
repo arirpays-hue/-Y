@@ -23,43 +23,15 @@ jobs:
       with:
         flutter-version: '3.x'
 
-    - name: Create Flutter Project Structure
-      run: |
-        flutter create . --org com.example --project-name mini_games --platforms=android
-
     - name: Get dependencies
       run: flutter pub get
 
-    - name: Add Launcher Icons Package & Generate Custom Icon
-      run: |
-        # הוספת החבילה ליצירת אייקונים לקובץ ההגדרות
-        echo "  flutter_launcher_icons: \"^0.13.1\"" >> pubspec.yaml
-        
-        # יצירת תיקיית א셋ים ותמונת אייקון זמנית (ריבוע צבעוני עם שלט משחק)
-        mkdir -p assets/icon
-        python3 -c "
-        from PIL import Image, ImageDraw
-        img = Image.new('RGB', (512, 512), color = (103, 58, 183))
-        d = ImageDraw.Draw(img)
-        d.text((150, 200), '🎮', fill=(255, 255, 255))
-        img.save('assets/icon/game_icon.png')
-        "
-        
-        # הגדרת האייקון בסוף קובץ ה-yaml
-        echo "flutter_launcher_icons:" >> pubspec.yaml
-        echo "  android: \"launcher_icon\"" >> pubspec.yaml
-        echo "  image_path: \"assets/icon/game_icon.png\"" >> pubspec.yaml
-        echo "  min_sdk_android: 21" >> pubspec.yaml
-
-        # הרצת המחולל
-        flutter pub run flutter_launcher_icons
-
     - name: Build APK Release
-      run: flutter build apk --release
+      run: flutter build apk --release --split-per-abi
 
     - name: Upload APK
       uses: actions/upload-artifact@v4
       with:
-        name: mini-games-apk
-        path: build/app/outputs/flutter-apk/app-release.apk
+        name: mini-games-optimized-apk
+        path: build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk
         
