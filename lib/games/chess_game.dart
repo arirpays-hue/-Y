@@ -17,8 +17,8 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
   List<Point<int>> validMoves = [];
   bool isWhiteTurn = true;
   bool isGameOver = false;
-  bool isPvP = false; // האם מצב משחק הוא שחקן נגד שחקן
-  String statusMessage = "בחר מצב משחק למטה ♟️";
+  bool isPvP = false;
+  String statusMessage = "תור השחקן הלבן ♟️";
 
   final Map<String, int> pieceValues = {
     'p': 100, 'n': 320, 'b': 330, 'r': 500, 'q': 900, 'k': 20000,
@@ -76,11 +76,8 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
 
   void _onSquareTap(int r, int c) {
     if (isGameOver) return;
-
-    // במצב AI, השחקן הלבן משחק לבד והשחור הוא AI
     if (!isPvP && !isWhiteTurn) return;
 
-    // במצב PvP, לבן משחק בתורו ושחור בתורו
     String currentPiece = board[r][c];
     bool isCurrentPlayerPiece = isWhiteTurn ? _isWhite(currentPiece) : _isBlack(currentPiece);
 
@@ -97,7 +94,6 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
         String targetPiece = board[r][c];
         _makeMove(board, selectedRow!, selectedCol!, r, c);
 
-        // בדיקת ניצחון באכילת מלך
         if (targetPiece == 'k') {
           _endGame("שח מט! השחקן הלבן ניצח! 🎉");
           return;
@@ -116,7 +112,6 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
               : "ה-AI מחשב מהלך... 🤖";
         });
 
-        // אם זה מצב AI ותור השחור - הפעל את ה-AI
         if (!isPvP && !isWhiteTurn) {
           Timer(const Duration(milliseconds: 500), _aiMove);
         }
@@ -207,44 +202,29 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
   void _aiMove() {
     if (isGameOver || isPvP) return;
 
-    int depth = widget.difficulty == 1 ? 1 : (widget.difficulty == 2 ? 2 : 3);
-    int bestScore = -99999;
-    Map<String, dynamic>? bestMove;
-
-    List<Map<String, dynamic>> allMoves = _getAllPossibleMoves(board, false);
-
-    if (allMoves.isEmpty) {
-      _endGame("שח מט! ניצחת את המשחק! 🎉");
-      return;
-    }
-
-    for (var move in allMoves) {
-      Point<int> from = move['from'];
-      Point<int> to = move['to'];
-
-      String tempTarget = board[to.x][to.y];
-      String tempSource = board[from.x][from.y];
-
-      _makeMove(board, from.x, from.y, to.x, to.y);
-      int score = _minimax(board, depth - 1, -100000, 100000, false);
-
-      board[from.x][from.y] = tempSource;
-      board[to.x][to.y] = tempTarget;
-
-      if (score > bestScore) {
-        bestScore = score;
-        bestMove = move;
+    List<Map<String, dynamic>> allMoves = [];
+    for (int r = 0; r < 8; r++) {
+      for (int c = 0; c < 8; c++) {
+        if (_isBlack(board[r][c])) {
+          List<Point<int>> moves = _getValidMoves(board, r, c);
+          for (var m in moves) {
+            int score = 0;
+            String target = board[m.x][m.y];
+            if (target.isNotEmpty) {
+              score = pieceValues[target.toLowerCase()] ?? 10;
+            }
+            allMoves.add({'from': Point(r, c), 'to': m, 'score': score});
+          }
+        }
       }
     }
 
-    if (widget.difficulty == 3 && Random().nextDouble() < 0.15 && allMoves.length > 1) {
-      allMoves.shuffle();
-      bestMove = allMoves.first;
-    }
+    if (allMoves.isNotEmpty) {
+      allMoves.sort((a, b) => (b['score'] as int).compareTo(a['score'] as int));
+      Map<String, dynamic> chosenMove = allMoves.first;
 
-    if (bestMove != null) {
-      Point<int> from = bestMove['from'];
-      Point<int> to = bestMove['to'];
+      Point<int> from = chosenMove['from'];
+      Point<int> to = chosenMove['to'];
       String targetPiece = board[to.x][to.y];
 
       _makeMove(board, from.x, from.y, to.x, to.y);
@@ -259,84 +239,6 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
       isWhiteTurn = true;
       statusMessage = "תורך לשחק (לבן) ♟️";
     });
-  }
-
-  int _minimax(List<List<String>> bd, int depth, int alpha, int beta, bool isMaximizing) {
-    if (depth == 0) return _evaluateBoard(bd);
-
-    List<Map<String, dynamic>> moves = _getAllPossibleMoves(bd, !isMaximizing);
-
-    if (isMaximizing) {
-      int maxEval = -99999;
-      for (var m in moves) {
-        Point<int> from = m['from'];
-        Point<int> to = m['to'];
-        String tempTarget = bd[to.x][to.y];
-        String tempSource = bd[from.x][from.y];
-
-        _makeMove(bd, from.x, from.y, to.x, to.y);
-        int eval = _minimax(bd, depth - 1, alpha, beta, false);
-        bd[from.x][from.y] = tempSource;
-        bd[to.x][to.y] = tempTarget;
-
-        maxEval = max(maxEval, eval);
-        alpha = max(alpha, eval);
-        if (beta <= alpha) break;
-      }
-      return maxEval;
-    } else {
-      int minEval = 99999;
-      for (var m in moves) {
-        Point<int> from = m['from'];
-        Point<int> to = m['to'];
-        String tempTarget = bd[to.x][to.y];
-        String tempSource = bd[from.x][from.y];
-
-        _makeMove(bd, from.x, from.y, to.x, to.y);
-        int eval = _minimax(bd, depth - 1, alpha, beta, true);
-        bd[from.x][from.y] = tempSource;
-        bd[to.x][to.y] = tempTarget;
-
-        minEval = min(minEval, eval);
-        beta = min(beta, eval);
-        if (beta <= alpha) break;
-      }
-      return minEval;
-    }
-  }
-
-  int _evaluateBoard(List<List<String>> bd) {
-    int score = 0;
-    for (int r = 0; r < 8; r++) {
-      for (int c = 0; c < 8; c++) {
-        String p = bd[r][c];
-        if (p.isNotEmpty) {
-          int val = pieceValues[p] ?? 0;
-          if (_isBlack(p)) {
-            score += val;
-          } else {
-            score -= val;
-          }
-        }
-      }
-    }
-    return score;
-  }
-
-  List<Map<String, dynamic>> _getAllPossibleMoves(List<List<String>> bd, bool forWhite) {
-    List<Map<String, dynamic>> moves = [];
-    for (int r = 0; r < 8; r++) {
-      for (int c = 0; c < 8; c++) {
-        String p = bd[r][c];
-        if (p.isNotEmpty && (forWhite ? _isWhite(p) : _isBlack(p))) {
-          List<Point<int>> valid = _getValidMoves(bd, r, c);
-          for (var v in valid) {
-            moves.add({'from': Point(r, c), 'to': v});
-          }
-        }
-      }
-    }
-    return moves;
   }
 
   void _endGame(String message) {
@@ -369,28 +271,25 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFF2D3436),
       appBar: AppBar(
-        title: Text(isPvP ? 'שחמט (שחקן מול שחקן)' : 'שחמט מול AI (רמה ${widget.difficulty})'),
+        title: Text(isPvP ? 'שחמט (שחקן מול שחקן)' : 'שחמט מול AI'),
         backgroundColor: const Color(0xFF6C5CE7),
         foregroundColor: Colors.white,
       ),
       body: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          // מתגי בחירת מצב משחק
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                ElevatedButton.styleFrom().wrap(
-                  ElevatedButton(
-                    onPressed: () => _resetBoard(false),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: !isPvP ? Colors.deepPurple : Colors.grey.shade700,
-                      foregroundColor: Colors.white,
-                    ),
-                    child: const Text('מצב AI 🤖'),
+                ElevatedButton(
+                  onPressed: () => _resetBoard(false),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: !isPvP ? Colors.deepPurple : Colors.grey.shade700,
+                    foregroundColor: Colors.white,
                   ),
+                  child: const Text('מצב AI 🤖'),
                 ),
                 const SizedBox(width: 12),
                 ElevatedButton(
@@ -462,8 +361,4 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
       ),
     );
   }
-}
-
-extension on ButtonStyle {
-  Widget wrap(Widget child) => child;
 }
