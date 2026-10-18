@@ -4,7 +4,13 @@ import 'package:flutter/material.dart';
 
 class ChessGameScreen extends StatefulWidget {
   final int difficulty;
-  const ChessGameScreen({super.key, required this.difficulty});
+  final bool initialPvP; // תמיכה בהגדרת PvP מהתפריט
+
+  const ChessGameScreen({
+    super.key,
+    required this.difficulty,
+    this.initialPvP = false,
+  });
 
   @override
   State<ChessGameScreen> createState() => _ChessGameScreenState();
@@ -17,7 +23,7 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
   List<Point<int>> validMoves = [];
   bool isWhiteTurn = true;
   bool isGameOver = false;
-  bool isPvP = false;
+  late bool isPvP;
   String statusMessage = "תור השחקן הלבן ♟️";
 
   final Map<String, int> pieceValues = {
@@ -28,7 +34,7 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
   @override
   void initState() {
     super.initState();
-    _resetBoard(false);
+    _resetBoard(widget.initialPvP);
   }
 
   void _resetBoard(bool pvpMode) {
@@ -76,9 +82,12 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
 
   void _onSquareTap(int r, int c) {
     if (isGameOver) return;
+    
+    // במצב AI, מותר ללחוץ רק כשתור הלבן
     if (!isPvP && !isWhiteTurn) return;
 
     String currentPiece = board[r][c];
+    // בדיקה האם הכלי שלחצנו עליו שייך לשחקן שלשתורו כעת
     bool isCurrentPlayerPiece = isWhiteTurn ? _isWhite(currentPiece) : _isBlack(currentPiece);
 
     if (selectedRow == null) {
@@ -98,7 +107,6 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
         validMoves.clear();
         isWhiteTurn = !isWhiteTurn;
 
-        // בדיקת שח, שח-מט ופילוס
         _checkGameState();
 
         if (!isGameOver && !isPvP && !isWhiteTurn) {
@@ -125,7 +133,6 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
     bd[fromR][fromC] = '';
   }
 
-  // מחזיר את כל המהלכים החוקיים שלא מעמידים את המלך בשח
   List<Point<int>> _getStrictLegalMoves(List<List<String>> bd, int r, int c, bool forWhite) {
     List<Point<int>> pseudoMoves = _getPseudoLegalMoves(bd, r, c);
     List<Point<int>> legalMoves = [];
@@ -148,7 +155,6 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
     return legalMoves;
   }
 
-  // תנועות בסיסיות של כל הכלים לפי החוקים הרשמיים
   List<Point<int>> _getPseudoLegalMoves(List<List<String>> bd, int r, int c) {
     List<Point<int>> moves = [];
     String piece = bd[r][c];
@@ -212,7 +218,6 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
     return moves;
   }
 
-  // בדיקה האם המלך נמצא תחת איום (שח)
   bool _isKingInCheck(List<List<String>> bd, bool isWhiteKing) {
     Point<int>? kingPos;
     String kingSymbol = isWhiteKing ? 'K' : 'k';
@@ -256,7 +261,6 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
     return moves;
   }
 
-  // בדיקת מצב המשחק (שח, שח-מט, פילוס)
   void _checkGameState() {
     bool inCheck = _isKingInCheck(board, isWhiteTurn);
     List<Map<String, dynamic>> allMoves = _getAllStrictLegalMoves(board, isWhiteTurn);
@@ -264,16 +268,14 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
     setState(() {
       if (allMoves.isEmpty) {
         if (inCheck) {
-          String winner = isWhiteTurn ? (isPvP ? "השחקן השחור" : "ה-AI") : (isPvP ? "השחקן הלבן" : "השחקן הלבן (אתה)");
+          String winner = isWhiteTurn ? (isPvP ? "השחקן השחור" : "ה-AI") : "השחקן הלבן";
           _endGame("שח-מט! $winner ניצח! 🏆");
         } else {
           _endGame("פילוס (תיקו)! אין שום מהלך חוקי לבצע 🤝");
         }
       } else {
         if (inCheck) {
-          statusMessage = isWhiteTurn
-              ? "שח על המלך הלבן! ⚠️"
-              : "שח על המלך השחור! ⚠️";
+          statusMessage = isWhiteTurn ? "שח על המלך הלבן! ⚠️" : "שח על המלך השחור! ⚠️";
         } else {
           statusMessage = isPvP
               ? (isWhiteTurn ? "תור השחקן הלבן ♟️" : "תור השחקן השחור ♟️")
@@ -283,7 +285,6 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
     });
   }
 
-  // מנוע AI מתקדם
   void _aiMove() {
     if (isGameOver || isPvP) return;
 
