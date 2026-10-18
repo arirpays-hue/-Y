@@ -1,63 +1,81 @@
+
 import 'package:flutter/material.dart';
+import '../games/all_games.dart';
 
-import 'chess_game.dart';
-import 'checkers_game.dart';
-import 'snake_game.dart';
-import 'catch_game.dart';
-import 'trivia_game.dart';
+class MainMenuScreen extends StatelessWidget {
+  const MainMenuScreen({super.key});
 
-class GameItem {
-  final String id;
-  final String title;
-  final String subtitle;
-  final String icon;
-  final WidgetBuilder screenBuilder;
+  @override
+  Widget build(BuildContext context) {
+    final availableGames = getAllGames();
 
-  GameItem({
-    required this.id,
-    required this.title,
-    required this.subtitle,
-    required this.icon,
-    required this.screenBuilder,
-  });
-}
+    return Scaffold(
+      backgroundColor: const Color(0xFF1E1E2C),
+      appBar: AppBar(
+        title: const Text('אוסף המשחקים 🎮'),
+        centerTitle: true,
+        backgroundColor: const Color(0xFF2D2D44),
+        foregroundColor: Colors.white,
+      ),
+      body: availableGames.isEmpty
+          ? const Center(
+              child: Text(
+                'לא נמצאו משחקים',
+                style: TextStyle(color: Colors.white),
+              ),
+            )
+          : ListView.builder(
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              itemCount: availableGames.length,
+              itemBuilder: (context, index) {
+                final game = availableGames[index];
 
-List<GameItem> getAllGames() {
-  return [
-    GameItem(
-      id: 'chess',
-      title: 'שחמט',
-      subtitle: 'משחק אסטרטגיה מלא מול AI או חבר',
-      icon: '♟️',
-      screenBuilder: (context) => const ChessGameScreen(difficulty: 1),
-    ),
-    GameItem(
-      id: 'checkers',
-      title: 'דמקה',
-      subtitle: 'דמקה קלאסית עם חוקי מלך ואפשרות PvP',
-      icon: '🔴',
-      screenBuilder: (context) => const CheckersGameScreen(difficulty: 1, initialPvP: false),
-    ),
-    GameItem(
-      id: 'snake',
-      title: 'סנייק',
-      subtitle: 'משחק הנחש הקלאסי',
-      icon: '🐍',
-      screenBuilder: (context) => const SnakeGameScreen(difficulty: 1), // הוספת difficulty
-    ),
-    GameItem(
-      id: 'catch',
-      title: 'תפוס את הנופלים',
-      subtitle: 'משחק תגובה מהיר',
-      icon: '🎯',
-      screenBuilder: (context) => const CatchGameScreen(difficulty: 1), // הוספת difficulty אם נדרש
-    ),
-    GameItem(
-      id: 'trivia',
-      title: 'טריוויה',
-      subtitle: 'בחן את הידע שלך',
-      icon: '❓',
-      screenBuilder: (context) => const TriviaGameScreen(difficulty: 1), // הוספת difficulty אם נדרש
-    ),
-  ];
+                return Card(
+                  color: const Color(0xFF2D2D44),
+                  margin: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 8,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: ListTile(
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 8,
+                    ),
+                    leading: Text(
+                      game.icon,
+                      style: const TextStyle(fontSize: 36),
+                    ),
+                    title: Text(
+                      game.title,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 20,
+                        color: Colors.white,
+                      ),
+                    ),
+                    subtitle: Text(
+                      game.subtitle,
+                      style: const TextStyle(color: Colors.white70),
+                    ),
+                    trailing: const Icon(
+                      Icons.arrow_forward_ios,
+                      color: Colors.white54,
+                    ),
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: game.screenBuilder,
+                        ),
+                      );
+                    },
+                  ),
+                );
+              },
+            ),
+    );
+  }
 }
