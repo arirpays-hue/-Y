@@ -49,7 +49,7 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
       validMoves.clear();
       isWhiteTurn = true;
       isGameOver = false;
-      statusMessage = isPvP ? "תור השחקן הלבן ♟️" : "תורך לשחק מול ה-AI (לבן) ♟️";
+      statusMessage = isPvP ? "תור השחקן הלבן ♟️" : "תורך לשחק (לבן) ♟️";
     });
   }
 
@@ -86,33 +86,22 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
         setState(() {
           selectedRow = r;
           selectedCol = c;
-          validMoves = _getValidMoves(board, r, c);
+          validMoves = _getStrictLegalMoves(board, r, c, isWhiteTurn);
         });
       }
     } else {
       if (validMoves.contains(Point(r, c))) {
-        String targetPiece = board[r][c];
         _makeMove(board, selectedRow!, selectedCol!, r, c);
 
-        if (targetPiece == 'k') {
-          _endGame("שח מט! השחקן הלבן ניצח! 🎉");
-          return;
-        } else if (targetPiece == 'K') {
-          _endGame("שח מט! השחקן השחור ניצח! 🎉");
-          return;
-        }
+        selectedRow = null;
+        selectedCol = null;
+        validMoves.clear();
+        isWhiteTurn = !isWhiteTurn;
 
-        setState(() {
-          selectedRow = null;
-          selectedCol = null;
-          validMoves.clear();
-          isWhiteTurn = !isWhiteTurn;
-          statusMessage = isPvP 
-              ? (isWhiteTurn ? "תור השחקן הלבן ♟️" : "תור השחקן השחור ♟️")
-              : "ה-AI מחשב מהלך... 🤖";
-        });
+        // בדיקת שח, שח-מט ופילוס
+        _checkGameState();
 
-        if (!isPvP && !isWhiteTurn) {
+        if (!isGameOver && !isPvP && !isWhiteTurn) {
           Timer(const Duration(milliseconds: 500), _aiMove);
         }
       } else {
@@ -120,7 +109,7 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
           if (isCurrentPlayerPiece) {
             selectedRow = r;
             selectedCol = c;
-            validMoves = _getValidMoves(board, r, c);
+            validMoves = _getStrictLegalMoves(board, r, c, isWhiteTurn);
           } else {
             selectedRow = null;
             selectedCol = null;
@@ -136,7 +125,31 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
     bd[fromR][fromC] = '';
   }
 
-  List<Point<int>> _getValidMoves(List<List<String>> bd, int r, int c) {
+  // מחזיר את כל המהלכים החוקיים שלא מעמידים את המלך בשח
+  List<Point<int>> _getStrictLegalMoves(List<List<String>> bd, int r, int c, bool forWhite) {
+    List<Point<int>> pseudoMoves = _getPseudoLegalMoves(bd, r, c);
+    List<Point<int>> legalMoves = [];
+
+    for (var move in pseudoMoves) {
+      String tempTarget = bd[move.x][move.y];
+      String tempSource = bd[r][c];
+
+      bd[move.x][move.y] = tempSource;
+      bd[r][c] = '';
+
+      if (!_isKingInCheck(bd, forWhite)) {
+        legalMoves.add(move);
+      }
+
+      bd[r][c] = tempSource;
+      bd[move.x][move.y] = tempTarget;
+    }
+
+    return legalMoves;
+  }
+
+  // תנועות בסיסיות של כל הכלים לפי החוקים הרשמיים
+  List<Point<int>> _getPseudoLegalMoves(List<List<String>> bd, int r, int c) {
     List<Point<int>> moves = [];
     String piece = bd[r][c];
     if (piece.isEmpty) return moves;
@@ -199,46 +212,137 @@ class _ChessGameScreenState extends State<ChessGameScreen> {
     return moves;
   }
 
-  void _aiMove() {
-    if (isGameOver || isPvP) return;
+  // בדיקה האם המלך נמצא תחת איום (שח)
+  bool _isKingInCheck(List<List<String>> bd, bool isWhiteKing) {
+    Point<int>? kingPos;
+    String kingSymbol = isWhiteKing ? 'K' : 'k';
 
-    List<Map<String, dynamic>> allMoves = [];
     for (int r = 0; r < 8; r++) {
       for (int c = 0; c < 8; c++) {
-        if (_isBlack(board[r][c])) {
-          List<Point<int>> moves = _getValidMoves(board, r, c);
-          for (var m in moves) {
-            int score = 0;
-            String target = board[m.x][m.y];
-            if (target.isNotEmpty) {
-              score = pieceValues[target.toLowerCase()] ?? 10;
-            }
-            allMoves.add({'from': Point(r, c), 'to': m, 'score': score});
-          }
+        if (bd[r][c] == kingSymbol) {
+          kingPos = Point(r, c);
+          break;
         }
       }
     }
 
-    if (allMoves.isNotEmpty) {
-      allMoves.sort((a, b) => (b['score'] as int).compareTo(a['score'] as int));
-      Map<String, dynamic> chosenMove = allMoves.first;
+    if (kingPos == null) return true;
 
-      Point<int> from = chosenMove['from'];
-      Point<int> to = chosenMove['to'];
-      String targetPiece = board[to.x][to.y];
+    for (int r = 0; r < 8; r++) {
+      for (int c = 0; c < 8; c++) {
+        String p = bd[r][c];
+        if (p.isNotEmpty && (isWhiteKing ? _isBlack(p) : _isWhite(p))) {
+          List<Point<int>> enemyMoves = _getPseudoLegalMoves(bd, r, c);
+          if (enemyMoves.contains(kingPos)) return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  List<Map<String, dynamic>> _getAllStrictLegalMoves(List<List<String>> bd, bool forWhite) {
+    List<Map<String, dynamic>> moves = [];
+    for (int r = 0; r < 8; r++) {
+      for (int c = 0; c < 8; c++) {
+        String p = bd[r][c];
+        if (p.isNotEmpty && (forWhite ? _isWhite(p) : _isBlack(p))) {
+          List<Point<int>> valid = _getStrictLegalMoves(bd, r, c, forWhite);
+          for (var v in valid) {
+            moves.add({'from': Point(r, c), 'to': v});
+          }
+        }
+      }
+    }
+    return moves;
+  }
+
+  // בדיקת מצב המשחק (שח, שח-מט, פילוס)
+  void _checkGameState() {
+    bool inCheck = _isKingInCheck(board, isWhiteTurn);
+    List<Map<String, dynamic>> allMoves = _getAllStrictLegalMoves(board, isWhiteTurn);
+
+    setState(() {
+      if (allMoves.isEmpty) {
+        if (inCheck) {
+          String winner = isWhiteTurn ? (isPvP ? "השחקן השחור" : "ה-AI") : (isPvP ? "השחקן הלבן" : "השחקן הלבן (אתה)");
+          _endGame("שח-מט! $winner ניצח! 🏆");
+        } else {
+          _endGame("פילוס (תיקו)! אין שום מהלך חוקי לבצע 🤝");
+        }
+      } else {
+        if (inCheck) {
+          statusMessage = isWhiteTurn
+              ? "שח על המלך הלבן! ⚠️"
+              : "שח על המלך השחור! ⚠️";
+        } else {
+          statusMessage = isPvP
+              ? (isWhiteTurn ? "תור השחקן הלבן ♟️" : "תור השחקן השחור ♟️")
+              : (isWhiteTurn ? "תורך לשחק (לבן) ♟️" : "ה-AI מחשב מהלך... 🤖");
+        }
+      }
+    });
+  }
+
+  // מנוע AI מתקדם
+  void _aiMove() {
+    if (isGameOver || isPvP) return;
+
+    List<Map<String, dynamic>> allMoves = _getAllStrictLegalMoves(board, false);
+    if (allMoves.isEmpty) {
+      _checkGameState();
+      return;
+    }
+
+    Map<String, dynamic>? bestMove;
+    int bestScore = -99999;
+
+    for (var move in allMoves) {
+      Point<int> from = move['from'];
+      Point<int> to = move['to'];
+
+      String tempTarget = board[to.x][to.y];
+      String tempSource = board[from.x][from.y];
 
       _makeMove(board, from.x, from.y, to.x, to.y);
+      int score = _evaluateBoard(board);
 
-      if (targetPiece == 'K') {
-        _endGame("ה-AI אכל את המלך שלך! הפסדת 🤖");
-        return;
+      board[from.x][from.y] = tempSource;
+      board[to.x][to.y] = tempTarget;
+
+      if (score > bestScore) {
+        bestScore = score;
+        bestMove = move;
       }
+    }
+
+    if (bestMove != null) {
+      Point<int> from = bestMove['from'];
+      Point<int> to = bestMove['to'];
+      _makeMove(board, from.x, from.y, to.x, to.y);
     }
 
     setState(() {
       isWhiteTurn = true;
-      statusMessage = "תורך לשחק (לבן) ♟️";
+      _checkGameState();
     });
+  }
+
+  int _evaluateBoard(List<List<String>> bd) {
+    int score = 0;
+    for (int r = 0; r < 8; r++) {
+      for (int c = 0; c < 8; c++) {
+        String p = bd[r][c];
+        if (p.isNotEmpty) {
+          int val = pieceValues[p] ?? 0;
+          if (_isBlack(p)) {
+            score += val;
+          } else {
+            score -= val;
+          }
+        }
+      }
+    }
+    return score;
   }
 
   void _endGame(String message) {
